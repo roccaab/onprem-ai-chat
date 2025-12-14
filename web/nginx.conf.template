@@ -19,7 +19,7 @@ server {
 
   # Legacy llama.cpp
   location /completion {
-    proxy_pass http://${UPSTREAM_HOST}:${UPSTREAM_PORT}/completion;
+    proxy_pass http://${UPSTREAM_HOSTPORT}/completion;
     proxy_http_version 1.1;
   }
 
