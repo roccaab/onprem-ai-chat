@@ -1,44 +1,70 @@
 services:
+  # ============================
+  # 1) LLM API (PRIVATE SERVICE)
+  # ============================
   - type: pserv
     name: llama-api
-    env: docker
+    runtime: docker
+    repo: .
     dockerContext: ./llama
     dockerfilePath: ./llama/Dockerfile
-    plan: standard  # scegli un piano paid se vuoi disk
+    plan: standard    # private service non può essere "free"
+    region: frankfurt # opzionale: vicino all'Italia
+
+    # Disco persistente per il modello (consigliato)
     disk:
       name: models
       mountPath: /var/models
-      sizeGB: 10
+      sizeGB: 15
+
     envVars:
-      - key: MODEL_DIR
-        value: /var/models
-      - key: MODEL_FILE
-        value: smollm3.gguf
-      - key: MODEL_URL
-        sync: false   # lo imposti da dashboard come secret (o lo metti qui se non ti importa)
+      # Porta interna: llama-server ascolta qui
+      - key: LLAMA_HOST
+        value: "0.0.0.0"
+      - key: LLAMA_PORT
+        value: "8080"
+
+      # Prestazioni
       - key: CTX
         value: "2048"
       - key: THREADS
         value: "4"
-    # porta interna per service discovery
-    # llama-server ascolta su 8080 (run.sh fa fallback)
 
+      # Modello (default SmolLM3)
+      - key: MODEL_DIR
+        value: "/var/models"
+      - key: MODEL_FILE
+        value: "smollm3/SmolLM3-3B-Q4_K_M.gguf"
+
+      # URL del modello (lo inserisci da dashboard come secret)
+      # serve solo se il file non è presente sul disk (primo avvio o cambio modello)
+      - key: MODEL_URL
+        sync: false
+
+  # ============================
+  # 2) WEB + PROXY (PUBLIC WEB)
+  # ============================
   - type: web
     name: ai-web
-    env: docker
-    plan: free
+    runtime: docker
+    repo: .
     dockerContext: ./web
     dockerfilePath: ./web/Dockerfile
+    plan: free
+    region: frankfurt
     healthCheckPath: /health
+
     envVars:
+      # Nginx template variables per upstream verso private service
       - key: UPSTREAM_HOST
-        value: llama-api
+        value: "llama-api"
       - key: UPSTREAM_PORT
         value: "8080"
+
+      # Protezione API (facoltativa)
       - key: BASIC_AUTH
         value: "0"
       - key: BASIC_AUTH_USER
         sync: false
       - key: BASIC_AUTH_PASS
         sync: false
-
