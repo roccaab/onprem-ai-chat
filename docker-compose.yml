@@ -2,36 +2,34 @@ services:
   llama:
     build:
       context: ./llama
-    container_name: llama_api
+    image: onprem-ai-chat-llama:latest
+    container_name: llama
     restart: unless-stopped
     environment:
       LLAMA_HOST: "0.0.0.0"
-      LLAMA_PORT: "${LLAMA_PORT:-8080}"
+      LLAMA_PORT: "8080"
       CTX: "${CTX:-2048}"
       THREADS: "${THREADS:-4}"
-
       MODEL_DIR: "/var/models"
       MODEL_FILE: "${MODEL_FILE:-smollm3/SmolLM3-3B-Q4_K_M.gguf}"
       MODEL_URL: "${MODEL_URL:-}"
     volumes:
       - ./models:/var/models
     ports:
-      - "${BIND_IP:-127.0.0.1}:${LLAMA_PORT:-8080}:${LLAMA_PORT:-8080}"
+      - "${LLAMA_HOST_PORT:-8080}:8080"
 
   web:
     build:
       context: ./web
-    container_name: ai_web
+    image: onprem-ai-chat-web:latest
+    container_name: ai-web
     restart: unless-stopped
     depends_on:
       - llama
     environment:
-      # qui usiamo docker DNS: il servizio si chiama "llama"
-      UPSTREAM_HOSTPORT: "llama:${LLAMA_PORT:-8080}"
-
+      UPSTREAM_HOSTPORT: "llama:8080"
       BASIC_AUTH: "${BASIC_AUTH:-0}"
       BASIC_AUTH_USER: "${BASIC_AUTH_USER:-admin}"
       BASIC_AUTH_PASS: "${BASIC_AUTH_PASS:-admin}"
     ports:
-      - "${BIND_IP:-127.0.0.1}:${WEB_PORT:-8089}:80"
-
+      - "${WEB_HOST_PORT:-8089}:80"
