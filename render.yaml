@@ -39,10 +39,10 @@ services:
 
     envVars:
       - key: UPSTREAM_HOSTPORT
-      fromService:
-        type: pserv
-        name: llama-api
-        property: hostport
+        fromService:
+          type: pserv
+          name: llama-api
+          property: hostport
       - key: BASIC_AUTH
         value: "0"
       - key: BASIC_AUTH_USER
