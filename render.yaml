@@ -38,10 +38,11 @@ services:
     healthCheckPath: /health
 
     envVars:
-      - key: UPSTREAM_HOST
-        value: "llama-api"
-      - key: UPSTREAM_PORT
-        value: "8080"
+      - key: UPSTREAM_HOSTPORT
+      fromService:
+        type: pserv
+        name: llama-api
+        property: hostport
       - key: BASIC_AUTH
         value: "0"
       - key: BASIC_AUTH_USER
