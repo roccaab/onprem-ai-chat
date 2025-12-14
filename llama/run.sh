@@ -2,8 +2,9 @@
 set -euo pipefail
 
 LLAMA_HOST="${LLAMA_HOST:-0.0.0.0}"
-# Render espone la porta in $PORT per web services; per private può essere vuoto, quindi fallback
-LLAMA_PORT="${PORT:-${LLAMA_PORT:-8080}}"
+# Private service: usa LLAMA_PORT (non $PORT) per restare coerente col proxy
+LLAMA_PORT="${LLAMA_PORT:-8080}"
+
 CTX="${CTX:-2048}"
 THREADS="${THREADS:-4}"
 
@@ -11,11 +12,10 @@ MODEL_DIR="${MODEL_DIR:-/var/models}"
 MODEL_FILE="${MODEL_FILE:-smollm3.gguf}"
 MODEL_PATH="${MODEL_DIR%/}/${MODEL_FILE}"
 
-# MODEL_URL può contenere CRLF o spazi invisibili da copy/paste
+# Pulisce CRLF e spazi invisibili da copy/paste (tipico Windows)
 MODEL_URL_RAW="${MODEL_URL:-}"
 MODEL_URL_CLEAN="$(printf '%s' "${MODEL_URL_RAW}" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 
-# Crea la directory base e (importante) la directory che conterrà il file
 mkdir -p "${MODEL_DIR}"
 mkdir -p "$(dirname "${MODEL_PATH}")"
 
@@ -24,7 +24,6 @@ if [ ! -f "${MODEL_PATH}" ]; then
     echo "ERRORE: modello non trovato (${MODEL_PATH}) e MODEL_URL non impostato."
     exit 1
   fi
-
   echo "Modello non presente. Download da: ${MODEL_URL_CLEAN}"
   curl -L --fail "${MODEL_URL_CLEAN}" -o "${MODEL_PATH}"
   echo "Download completato: ${MODEL_PATH}"
@@ -40,3 +39,4 @@ exec /usr/local/bin/llama-server \
   -t "${THREADS}" \
   --host "${LLAMA_HOST}" \
   --port "${LLAMA_PORT}"
+
