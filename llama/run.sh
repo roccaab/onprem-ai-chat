@@ -11,11 +11,13 @@ MODEL_DIR="${MODEL_DIR:-/var/models}"
 MODEL_FILE="${MODEL_FILE:-smollm3.gguf}"
 MODEL_PATH="${MODEL_DIR%/}/${MODEL_FILE}"
 
-# MODEL_URL può contenere CRLF o spazi invisibili da copy/paste (tipico da Windows/console).
+# MODEL_URL può contenere CRLF o spazi invisibili da copy/paste
 MODEL_URL_RAW="${MODEL_URL:-}"
 MODEL_URL_CLEAN="$(printf '%s' "${MODEL_URL_RAW}" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 
+# Crea la directory base e (importante) la directory che conterrà il file
 mkdir -p "${MODEL_DIR}"
+mkdir -p "$(dirname "${MODEL_PATH}")"
 
 if [ ! -f "${MODEL_PATH}" ]; then
   if [ -z "${MODEL_URL_CLEAN}" ]; then
@@ -24,7 +26,6 @@ if [ ! -f "${MODEL_PATH}" ]; then
   fi
 
   echo "Modello non presente. Download da: ${MODEL_URL_CLEAN}"
-  # -L segue redirect (HuggingFace), --fail fallisce su HTTP != 2xx
   curl -L --fail "${MODEL_URL_CLEAN}" -o "${MODEL_PATH}"
   echo "Download completato: ${MODEL_PATH}"
 else
