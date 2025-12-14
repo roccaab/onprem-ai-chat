@@ -1,1 +1,531 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Assistente chat aziendale – Comune di Casalattico</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- Bootstrap Italia / Design Italia (CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/css/bootstrap-italia.min.css" />
+
+  <style>
+    body { background-color: #f5f7fa; }
+
+    .app-container { min-height: 100vh; display: flex; flex-direction: column; }
+
+    .chat-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 2rem;
+    }
+
+    /* Card principale con più contrasto */
+    .chat-shell {
+      background: #ffffff;
+      border-radius: 10px;
+      border: 2px solid #cfd7e6;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    /* Header interno più netto */
+    .chat-shell-header {
+      padding: 1rem 1.25rem;
+      background: #eef3fb;
+      border-bottom: 2px solid #cfd7e6;
+    }
+
+    .chat-title { margin: 0; }
+    .chat-subtitle { margin: 0.25rem 0 0; font-size: 0.9rem; color: #455a73; }
+    .chat-warning { margin: 0.25rem 0 0; font-size: 0.85rem; color: #7a2e2e; }
+
+    .status-bar {
+      font-size: 0.85rem;
+      color: #455a73;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #cfd7e6;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background-color: #28a745;
+      display: inline-block;
+    }
+
+    /* Sezioni: storico vs input molto separate */
+    .chat-sections {
+      padding: 1rem 1.25rem 1.25rem;
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .panel {
+      border: 2px solid #dde5f2;
+      border-radius: 10px;
+      background: #f9fbff;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 0.9rem;
+      border-bottom: 2px solid #dde5f2;
+      background: #ffffff;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+
+    .panel-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+      color: #2c3e50;
+      margin: 0;
+    }
+
+    .panel-title .icon { width: 16px; height: 16px; }
+
+    /* Storico messaggi */
+    .chat-messages {
+      height: 52vh;
+      max-height: 640px;
+      overflow-y: auto;
+      padding: 0.9rem;
+    }
+
+    .chat-message { margin-bottom: 0.8rem; display: flex; flex-direction: column; }
+    .chat-message .meta {
+      font-size: 0.75rem;
+      color: #5c6f82;
+      margin-bottom: 0.2rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .meta .icon { width: 15px; height: 15px; }
+
+    .bubble {
+      border-radius: 16px;
+      padding: 0.7rem 0.9rem;
+      max-width: 86%;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .chat-message.user .bubble {
+      align-self: flex-end;
+      background: #0b5ed7;
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .chat-message.assistant .bubble {
+      align-self: flex-start;
+      background: #ffffff;
+      color: #1b1b1b;
+      border: 2px solid #dde5f2;
+    }
+
+    /* Input area più evidente */
+    .chat-input-body { padding: 0.9rem; background: #ffffff; }
+
+    .chat-input-row { display: flex; gap: 0.6rem; align-items: flex-end; }
+
+    .chat-input-row textarea {
+      resize: vertical;
+      min-height: 70px;
+      max-height: 180px;
+      border: 2px solid #cfd7e6;
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    /* Placeholder (watermark) molto leggero */
+    .chat-input-row textarea::placeholder {
+      color: #c7ced9;  /* grigio molto chiaro */
+      opacity: 1;
+      font-size: 0.85rem;
+    }
+
+    .helper-text { margin-top: 0.5rem; font-size: 0.82rem; color: #5c6f82; }
+
+    .btn-icon .rounded-icon { border-radius: 999px; }
+
+    .loading-dots span {
+      animation: blink 1.4s infinite both;
+      display: inline-block;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0% {opacity:0.2;} 20% {opacity:1;} 100% {opacity:0.2;} }
+
+    footer.it-footer { margin-top: auto; }
+  </style>
+</head>
+
+<body>
+<div class="app-container">
+
+  <!-- HEADER DESIGN ITALIA -->
+  <header class="it-header-wrapper">
+    <div class="it-header-slim-wrapper">
+      <div class="container">
+        <div class="row">
+          <div class="col-12">
+            <div class="it-header-slim-wrapper-content">
+              <a class="d-none d-lg-block navbar-brand" href="#">Comune di Casalattico</a>
+              <div class="it-header-slim-right-zone">
+                <span class="it-access-top-wrapper">
+                  <a href="#" aria-label="Vai ai contatti">Contatti</a>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="it-nav-wrapper">
+      <div class="it-header-center-wrapper theme-light-desk">
+        <div class="container">
+          <div class="row">
+            <div class="col-12">
+              <div class="it-header-center-content-wrapper">
+                <div class="it-brand-wrapper">
+                  <a href="#">
+                    <div class="it-brand-text">
+                      <h2 class="no_toc">Assistente chat aziendale</h2>
+                      <h3 class="no_toc d-none d-md-block">Basato su modello locale. I dati inseriti non vengono trasmessi a nessun server</h3>
+                      <p class="no_toc d-none d-md-block mb-0" style="color:#7a2e2e; font-size:0.9rem;">
+                        Attenzione: i modelli di AI possono sbagliare ed avere allucinazioni, controllare attentamente ogni risposta.
+                      </p>
+                    </div>
+                  </a>
+                </div>
+                <div class="it-right-zone d-none d-lg-flex">
+                  <span class="badge badge-primary">Ambiente di test</span>
+                </div>
+              </div><!-- /it-header-center-content-wrapper -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="chat-wrapper" id="main-content">
+    <div class="chat-shell">
+
+      <!-- Header interno (ripete info in modo leggibile anche su mobile) -->
+      <div class="chat-shell-header">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div>
+            <h3 class="h5 chat-title mb-1">Assistente chat aziendale</h3>
+            <p class="chat-subtitle">
+              Basato su modello locale. I dati inseriti non vengono trasmessi a nessun server.
+            </p>
+            <p class="chat-warning">
+              Attenzione: i modelli di AI possono sbagliare ed avere allucinazioni, controllare attentamente ogni risposta.
+            </p>
+          </div>
+          <div class="status-bar" aria-live="polite">
+            <span id="status-dot" class="status-dot"></span>
+            <span id="status-text">Pronto</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-sections">
+
+        <!-- PANEL: STORICO CONVERSAZIONE -->
+        <section class="panel" aria-label="Storico conversazione">
+          <div class="panel-header">
+            <p class="panel-title">
+              <svg class="icon" aria-hidden="true">
+                <use href="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/svg/sprite.svg#it-comment"></use>
+              </svg>
+              Conversazione
+            </p>
+            <button id="clear-btn" class="btn btn-outline-primary btn-sm" type="button" aria-label="Svuota chat">
+              <svg class="icon icon-sm" aria-hidden="true">
+                <use href="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/svg/sprite.svg#it-delete"></use>
+              </svg>
+              Svuota
+            </button>
+          </div>
+
+          <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+        </section>
+
+        <!-- PANEL: INPUT UTENTE -->
+        <section class="panel" aria-label="Invia un messaggio">
+          <div class="panel-header">
+            <p class="panel-title">
+              <svg class="icon" aria-hidden="true">
+                <use href="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/svg/sprite.svg#it-pencil"></use>
+              </svg>
+              Inserisci messaggio
+            </p>
+            <span class="text-muted" style="font-size:0.82rem;">Invio: Enter · A capo: Shift+Enter</span>
+          </div>
+
+          <div class="chat-input-body">
+            <div class="chat-input-row">
+              <div class="form-group w-100 mb-0">
+                <label for="user-input" class="sr-only">Messaggio</label>
+                <textarea
+                  class="form-control"
+                  id="user-input"
+                  placeholder="Scrivi qui la tua richiesta…"
+                ></textarea>
+              </div>
+
+              <button id="send-btn" class="btn btn-primary btn-icon" type="button" aria-label="Invia">
+                <span class="rounded-icon">
+                  <svg class="icon icon-sm" aria-hidden="true">
+                    <use href="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/svg/sprite.svg#it-paper-plane"></use>
+                  </svg>
+                </span>
+              </button>
+            </div>
+
+            <div class="helper-text">
+              Non inserire dati personali o sensibili. Verifica sempre le risposte prima di utilizzarle.
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="it-footer">
+    <div class="it-footer-main">
+      <div class="container">
+        <section>
+          <div class="row">
+            <div class="col-12 col-md-8">
+              <h4 class="mb-2">Comune di Casalattico</h4>
+              <p class="mb-0" style="font-size: 0.85rem;">
+                Prototipo di interfaccia conversazionale conforme allo stile Design Italia (1.4.1). Uso interno sperimentale.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div class="it-footer-small-prints clearfix">
+      <div class="container">
+        <div class="row">
+          <div class="col-12">
+            <span style="font-size: 0.8rem;">
+              © Comune di Casalattico – Ambiente di test · Chat AI sperimentale · Non sostituisce le comunicazioni ufficiali dell’Ente.
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- JS Bootstrap Italia -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/js/bootstrap-italia.bundle.min.js"></script>
+
+<script>
+  // ==========================
+  // CONFIG
+  // ==========================
+  const API_URL = "/v1/chat/completions";
+  const MODEL_NAME = "SmolLM3-3B-Q4_K_M"; // solo etichetta
+
+  // Contesto chat: generico, niente argomenti predefiniti
+  let messages = [
+    {
+      role: "system",
+      content:
+        "Sei un assistente chat aziendale del Comune di Casalattico. Rispondi in italiano con tono professionale e chiaro. " +
+        "Se non sei sicuro, dillo esplicitamente e proponi come verificare. Evita meta-commenti. Non citare che sei un modello AI. " +
+        "Non fornire pareri medici, legali o fiscali vincolanti: indica sempre di verificare con fonti ufficiali o professionisti."
+    },
+    {
+      role: "assistant",
+      content:
+        "Ciao! Sono l’assistente chat aziendale. Posso aiutarti con testi, bozze, chiarimenti operativi e domande generiche. Scrivi pure la tua richiesta."
+    }
+  ];
+
+  const chatMessagesEl = document.getElementById("chat-messages");
+  const userInputEl = document.getElementById("user-input");
+  const sendBtnEl = document.getElementById("send-btn");
+  const clearBtnEl = document.getElementById("clear-btn");
+  const statusDotEl = document.getElementById("status-dot");
+  const statusTextEl = document.getElementById("status-text");
+
+  function iconUse(href) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "icon");
+    svg.setAttribute("aria-hidden", "true");
+    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", href);
+    svg.appendChild(use);
+    return svg;
+  }
+
+  function renderMessages() {
+    chatMessagesEl.innerHTML = "";
+
+    messages.forEach((msg) => {
+      if (msg.role === "system") return;
+
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("chat-message");
+      wrapper.classList.add(msg.role === "user" ? "user" : "assistant");
+
+      const meta = document.createElement("div");
+      meta.classList.add("meta");
+
+      if (msg.role === "user") {
+        meta.appendChild(iconUse("https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/svg/sprite.svg#it-user"));
+        meta.appendChild(document.createTextNode("Tu"));
+      } else {
+        meta.appendChild(iconUse("https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/svg/sprite.svg#it-robot"));
+        meta.appendChild(document.createTextNode("Assistente"));
+      }
+
+      const bubble = document.createElement("div");
+      bubble.classList.add("bubble");
+      bubble.textContent = msg.content;
+
+      wrapper.appendChild(meta);
+      wrapper.appendChild(bubble);
+      chatMessagesEl.appendChild(wrapper);
+    });
+
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  function addThinkingMessage() {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("chat-message", "assistant");
+    wrapper.id = "thinking-message";
+
+    const meta = document.createElement("div");
+    meta.classList.add("meta");
+    meta.appendChild(iconUse("https://cdn.jsdelivr.net/npm/bootstrap-italia@2.9.1/dist/svg/sprite.svg#it-robot"));
+    meta.appendChild(document.createTextNode("Assistente"));
+
+    const bubble = document.createElement("div");
+    bubble.classList.add("bubble");
+    bubble.innerHTML = '<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>';
+
+    wrapper.appendChild(meta);
+    wrapper.appendChild(bubble);
+    chatMessagesEl.appendChild(wrapper);
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  function removeThinkingMessage() {
+    const thinking = document.getElementById("thinking-message");
+    if (thinking) thinking.remove();
+  }
+
+  function setStatus(text, state) {
+    statusTextEl.textContent = text;
+    if (state === "busy") {
+      statusDotEl.style.backgroundColor = "#ffc107"; // giallo
+    } else if (state === "error") {
+      statusDotEl.style.backgroundColor = "#dc3545"; // rosso
+    } else {
+      statusDotEl.style.backgroundColor = "#28a745"; // verde
+    }
+  }
+
+  async function sendMessage() {
+    const text = userInputEl.value.trim();
+    if (!text) return;
+
+    messages.push({ role: "user", content: text });
+    userInputEl.value = "";
+    renderMessages();
+    addThinkingMessage();
+    setStatus("Risposta in corso…", "busy");
+
+    try {
+      const body = {
+        model: MODEL_NAME,
+        messages: messages,
+        temperature: 0.6,
+        top_p: 0.9,
+        max_tokens: 400,
+        stop: ["</s>"]
+      };
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) throw new Error("HTTP " + response.status);
+
+      const data = await response.json();
+      const assistantText = data.choices?.[0]?.message?.content || "(Nessuna risposta ricevuta)";
+
+      messages.push({ role: "assistant", content: assistantText });
+      setStatus("Pronto", "ok");
+    } catch (err) {
+      console.error(err);
+      messages.push({
+        role: "assistant",
+        content:
+          "Errore nella chiamata al server AI. Verifica che l'endpoint sia raggiungibile e che CORS sia configurato correttamente."
+      });
+      setStatus("Errore", "error");
+    } finally {
+      removeThinkingMessage();
+      renderMessages();
+      if (statusTextEl.textContent !== "Errore") setStatus("Pronto", "ok");
+    }
+  }
+
+  function resetChat() {
+    messages = messages.slice(0, 2); // system + messaggio iniziale assistant
+    renderMessages();
+    setStatus("Pronto", "ok");
+  }
+
+  sendBtnEl.addEventListener("click", sendMessage);
+
+  userInputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  clearBtnEl.addEventListener("click", resetChat);
+
+  renderMessages();
+</script>
+</body>
+</html>
