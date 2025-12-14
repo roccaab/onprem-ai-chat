@@ -1,1 +1,44 @@
+services:
+  - type: pserv
+    name: llama-api
+    env: docker
+    dockerContext: ./llama
+    dockerfilePath: ./llama/Dockerfile
+    plan: standard  # scegli un piano paid se vuoi disk
+    disk:
+      name: models
+      mountPath: /var/models
+      sizeGB: 10
+    envVars:
+      - key: MODEL_DIR
+        value: /var/models
+      - key: MODEL_FILE
+        value: smollm3.gguf
+      - key: MODEL_URL
+        sync: false   # lo imposti da dashboard come secret (o lo metti qui se non ti importa)
+      - key: CTX
+        value: "2048"
+      - key: THREADS
+        value: "4"
+    # porta interna per service discovery
+    # llama-server ascolta su 8080 (run.sh fa fallback)
+
+  - type: web
+    name: ai-web
+    env: docker
+    plan: free
+    dockerContext: ./web
+    dockerfilePath: ./web/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: UPSTREAM_HOST
+        value: llama-api
+      - key: UPSTREAM_PORT
+        value: "8080"
+      - key: BASIC_AUTH
+        value: "0"
+      - key: BASIC_AUTH_USER
+        sync: false
+      - key: BASIC_AUTH_PASS
+        sync: false
 
